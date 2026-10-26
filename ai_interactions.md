@@ -72,3 +72,34 @@ Where I had to think for myself: the AI proposed the weights, but I checked that
 - `tests/test_scoring_modes.py` has 9 tests. They use four tiny songs, each built to win under one mode. I also broke the code on purpose (made every mode use the balanced weights) and confirmed 3 tests failed, so the tests really do check the modes.
 
 **Branch note.** I did the work on a new branch, `experiment/scoring-modes`, so `main` stayed safe. The default `balanced` output is byte-for-byte identical to before. I have not merged the branch.
+
+---
+
+## Diversity Penalty
+
+**Prompt I wrote for the AI chat:**
+
+> In `recommend_songs` in `recommender.py`, add an optional diversity penalty so the top results are not full of one artist or one genre. Pick songs one at a time, best score first. After each pick, lower the score of every remaining song by 0.15 for each already-picked song by the same artist, and by 0.08 for each already-picked song in the same genre. Never let a score go below 0. Add the penalty to the reasons list, for example "diversity penalty: artist X already picked (-0.15)". Keep it off by default so the existing output does not change, and add a `--diverse` switch in `main.py`. Do not change how `score_song` works.
+
+**What the AI generated:**
+
+- A greedy re-ranking helper, `_pick_diverse`, in `src/recommender.py`. It picks the best adjusted score, removes that song from the pool and repeats until it has k songs.
+- Two constants, `ARTIST_PENALTY = 0.15` and `GENRE_PENALTY = 0.08`.
+- A `diverse=False` argument on `recommend_songs`, and a `--diverse` flag in `src/main.py`.
+- `tests/test_diversity.py` with 9 tests.
+
+**Why a greedy re-rank:** the penalty depends on what has already been picked, so it cannot be a fixed score per song. Picking one at a time lets each choice see the earlier ones.
+
+**How I tested it:**
+
+- The default output is byte-for-byte identical to before, and all 20 tests pass.
+- Small made-up catalogs check the rules: a same-artist, same-genre song is pushed below a different one, a third song from the same artist loses twice as much, nothing is penalized when everything differs, scores never go below 0, and `k` larger than the catalog works.
+- On the real catalog, across 10 profiles, repeated artists in the top 5 fall from 4 to 0 and repeated genres from 8 to 4. Chill Lofi goes from two LoRoom songs to one.
+- I set both penalties to 0 on purpose and 3 tests failed, so the tests do check the penalty. I then restored the real values.
+
+**What to double-check:**
+
+- The penalty values (0.15 and 0.08) are my guess. Only a few profiles were tried.
+- Genre repeats do not drop to 0, by design. The penalty is a nudge, so a strong second song from a genre can still make the list. That is intended, since a hard cap would push weak songs into the list.
+- The penalty uses exact artist and genre strings, so "pop" and "indie pop" still count as different genres.
+

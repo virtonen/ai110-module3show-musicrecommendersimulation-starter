@@ -25,6 +25,11 @@ SCORING_MODES: Dict[str, Dict[str, float]] = {
 DEFAULT_MODE = "balanced"
 DECADE_SPAN = 40  # a release-decade gap of 40 years or more earns nothing
 
+# Diversity penalty, used when recommend_songs(..., diverse=True). Each song already
+# picked by the same artist or in the same genre lowers the score of a later song.
+ARTIST_PENALTY = 0.15
+GENRE_PENALTY = 0.08
+
 
 @dataclass
 class Song:
@@ -166,16 +171,43 @@ def score_song(user_prefs: Dict, song: Dict, mode: str = DEFAULT_MODE) -> Tuple[
     return score, reasons
 
 def recommend_songs(
-    user_prefs: Dict, songs: List[Dict], k: int = 5, mode: str = DEFAULT_MODE
+    user_prefs: Dict, songs: List[Dict], k: int = 5, mode: str = DEFAULT_MODE, diverse: bool = False
 ) -> List[Tuple[Dict, float, str]]:
     """
     Functional implementation of the recommendation logic.
     Required by src/main.py
     """
     # Judge every song with score_song, then rank; sorted() leaves `songs` untouched
-    scored = (
-        (song, score, "; ".join(reasons))
-        for song in songs
-        for score, reasons in [score_song(user_prefs, song, mode)]
-    )
-    return sorted(scored, key=lambda item: item[1], reverse=True)[:k]
+    judged = [(song, *score_song(user_prefs, song, mode)) for song in songs]
+    ranked = sorted(judged, key=lambda item: item[1], reverse=True)
+    if diverse:
+        return _pick_diverse(ranked, k)
+    return [(song, score, "; ".join(reasons)) for song, score, reasons in ranked[:k]]
+
+
+def _pick_diverse(ranked: List[Tuple[Dict, float, List[str]]], k: int) -> List[Tuple[Dict, float, str]]:
+    """
+    Greedy re-ranking. Pick the best song, then charge every remaining song a penalty
+    for each already-picked song by the same artist or in the same genre, and repeat.
+    """
+    pool = list(ranked)
+    picks: List[Tuple[Dict, float, str]] = []
+    while pool and len(picks) < k:
+        chosen = None  # (adjusted score, pool index, song, reasons)
+        for index, (song, score, reasons) in enumerate(pool):
+            artist_hits = sum(1 for p, _, _ in picks if p["artist"] == song["artist"])
+            genre_hits = sum(1 for p, _, _ in picks if p["genre"] == song["genre"])
+            artist_cut = ARTIST_PENALTY * artist_hits
+            genre_cut = GENRE_PENALTY * genre_hits
+            adjusted = max(0.0, score - artist_cut - genre_cut)
+            if chosen is None or adjusted > chosen[0]:
+                notes = list(reasons)
+                if artist_hits:
+                    notes.append(f"diversity penalty: artist {song['artist']} already picked (-{artist_cut:.2f})")
+                if genre_hits:
+                    notes.append(f"diversity penalty: genre {song['genre']} already picked (-{genre_cut:.2f})")
+                chosen = (adjusted, index, song, notes)
+        adjusted, index, song, notes = chosen
+        picks.append((song, adjusted, "; ".join(notes)))
+        pool.pop(index)
+    return picks

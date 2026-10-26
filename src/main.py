@@ -73,12 +73,15 @@ ADVANCED_PROFILES = {
 }
 
 
-def print_recommendations(name: str, user_prefs: dict, songs: list, k: int = 5, mode: str = DEFAULT_MODE) -> None:
+def print_recommendations(
+    name: str, user_prefs: dict, songs: list, k: int = 5, mode: str = DEFAULT_MODE, diverse: bool = False
+) -> None:
     """Print the top k recommendations for one profile in a readable layout."""
-    recommendations = recommend_songs(user_prefs, songs, k=k, mode=mode)
+    recommendations = recommend_songs(user_prefs, songs, k=k, mode=mode, diverse=diverse)
 
+    tags = ([] if mode == DEFAULT_MODE else [f"mode: {mode}"]) + (["diverse"] if diverse else [])
     print("\n" + "=" * WIDTH)
-    print(f"PROFILE: {name}" + ("" if mode == DEFAULT_MODE else f"  [mode: {mode}]"))
+    print(f"PROFILE: {name}" + (f"  [{', '.join(tags)}]" if tags else ""))
     print(
         f"{user_prefs['genre']} / {user_prefs['mood']} | "
         f"energy {user_prefs['energy']} | valence {user_prefs['valence']} | "
@@ -113,6 +116,8 @@ def main() -> None:
                         help="scoring mode to rank songs with")
     parser.add_argument("--compare", action="store_true",
                         help="show the top 3 of every mode side by side instead")
+    parser.add_argument("--diverse", action="store_true",
+                        help="penalize songs whose artist or genre is already in the results")
     args = parser.parse_args()
 
     songs = load_songs("data/songs.csv")
@@ -123,7 +128,7 @@ def main() -> None:
         if args.compare:
             print_comparison(name, prefs, songs)
         else:
-            print_recommendations(name, prefs, songs, mode=args.mode)
+            print_recommendations(name, prefs, songs, mode=args.mode, diverse=args.diverse)
 
 
 if __name__ == "__main__":

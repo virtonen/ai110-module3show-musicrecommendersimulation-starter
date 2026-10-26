@@ -108,6 +108,22 @@ What the modes show:
 - **Energy-focused flips the conflicting profile.** The loud rock song wins over the sad classical one.
 - **No mode is "right".** Each one answers a different question about what the listener cares about most.
 
+**Diversity penalty (optional)**
+
+Run with `--diverse` to stop the top results from filling up with one artist or one genre:
+
+```bash
+python -m src.main --diverse
+```
+
+Songs are picked one at a time. After each pick, every remaining song loses points for each already-picked song by the same artist (**-0.15**) or in the same genre (**-0.08**). The penalty shows up in the reasons list, for example `diversity penalty: genre lofi already picked (-0.08)`. It is off by default, so normal output is unchanged.
+
+Example, Chill Lofi: without the penalty, two of the top five songs are by LoRoom and three are lofi. With it, there is one LoRoom song and two lofi songs, and *Dust Road Home* (country) replaces *Focus Flow*.
+
+Across all 10 demo profiles, repeated artists in the top 5 fall from 4 to 0, and repeated genres from 8 to 4.
+
+This is also a small fairness step. Artists with several songs in the catalog can't take over the list, and a listener sees more of the catalog. The cost is that a very good second song can be pushed down.
+
 **Ranking rule:** sort all songs by score, highest first, and return the top K.
 
 **Data flow plan**
