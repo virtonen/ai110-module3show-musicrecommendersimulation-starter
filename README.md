@@ -124,6 +124,50 @@ Across all 10 demo profiles, repeated artists in the top 5 fall from 4 to 0, and
 
 This is also a small fairness step. Artists with several songs in the catalog can't take over the list, and a listener sees more of the catalog. The cost is that a very good second song can be pushed down.
 
+**Table view**
+
+Run with `--table` for a compact table with the reasons next to each score:
+
+```bash
+python -m src.main --table
+python -m src.main --table --mode mood-first --diverse   # flags can be combined
+```
+
+It uses plain ASCII drawn by `src/report.py`, so there is nothing extra to install. Long reasons wrap inside their cell. The words "close to target" are dropped from the reasons to save space. Sample output:
+
+```
+PROFILE: Chill Lofi  (lofi / chill, energy 0.4)
++---+---------------------+----------------+-----------------+-------+--------------------------------------+
+| # | Song                | Artist         | Genre / Mood    | Score | Reasons                              |
++---+---------------------+----------------+-----------------+-------+--------------------------------------+
+| 1 | Library Rain        | Paper Lanterns | lofi / chill    | 0.97  | - energy: 0.35 vs 0.40 (+0.33)       |
+|   |                     |                |                 |       | - acousticness: 0.86 vs 0.80 (+0.24) |
+|   |                     |                |                 |       | - valence: 0.60 vs 0.60 (+0.20)      |
+|   |                     |                |                 |       | - mood match: chill (+0.12)          |
+|   |                     |                |                 |       | - genre match: lofi (+0.08)          |
++---+---------------------+----------------+-----------------+-------+--------------------------------------+
+| 2 | Midnight Coding     | LoRoom         | lofi / chill    | 0.96  | - energy: 0.42 vs 0.40 (+0.34)       |
+|   |                     |                |                 |       | - acousticness: 0.71 vs 0.80 (+0.23) |
+|   |                     |                |                 |       | - valence: 0.56 vs 0.60 (+0.19)      |
+|   |                     |                |                 |       | - mood match: chill (+0.12)          |
+|   |                     |                |                 |       | - genre match: lofi (+0.08)          |
++---+---------------------+----------------+-----------------+-------+--------------------------------------+
+| 3 | Focus Flow          | LoRoom         | lofi / focused  | 0.87  | - energy: 0.40 vs 0.40 (+0.35)       |
+|   |                     |                |                 |       | - acousticness: 0.78 vs 0.80 (+0.24) |
+|   |                     |                |                 |       | - valence: 0.59 vs 0.60 (+0.20)      |
+|   |                     |                |                 |       | - genre match: lofi (+0.08)          |
++---+---------------------+----------------+-----------------+-------+--------------------------------------+
+| 4 | Spacewalk Thoughts  | Orbit Bloom    | ambient / chill | 0.84  | - energy: 0.28 vs 0.40 (+0.31)       |
+|   |                     |                |                 |       | - acousticness: 0.92 vs 0.80 (+0.22) |
+|   |                     |                |                 |       | - valence: 0.65 vs 0.60 (+0.19)      |
+|   |                     |                |                 |       | - mood match: chill (+0.12)          |
++---+---------------------+----------------+-----------------+-------+--------------------------------------+
+| 5 | Coffee Shop Stories | Slow Stereo    | jazz / relaxed  | 0.74  | - energy: 0.37 vs 0.40 (+0.34)       |
+|   |                     |                |                 |       | - acousticness: 0.89 vs 0.80 (+0.23) |
+|   |                     |                |                 |       | - valence: 0.71 vs 0.60 (+0.18)      |
++---+---------------------+----------------+-----------------+-------+--------------------------------------+
+```
+
 **Ranking rule:** sort all songs by score, highest first, and return the top K.
 
 **Data flow plan**
@@ -274,7 +318,9 @@ Profile: pop / happy | energy 0.8 | valence 0.8 | acoustic 0.2
 ================================================================
 ```
 
-**Screenshot or video** *(optional)*: <!-- Insert a screenshot or demo video link here -->
+**Screenshot:** the table view (`python -m src.main --table`) for the High-Energy Pop and Chill Lofi profiles.
+
+![Terminal table of top 5 High-Energy Pop recommendations with scores and reasons](screenshot.png)
 
 ---
 

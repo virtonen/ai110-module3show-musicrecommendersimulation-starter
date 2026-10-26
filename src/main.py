@@ -11,6 +11,7 @@ You will implement the functions in recommender.py:
 
 import argparse
 
+from src.report import recommendations_table
 from src.recommender import DEFAULT_MODE, SCORING_MODES, load_songs, recommend_songs
 
 WIDTH = 64
@@ -116,6 +117,8 @@ def main() -> None:
                         help="scoring mode to rank songs with")
     parser.add_argument("--compare", action="store_true",
                         help="show the top 3 of every mode side by side instead")
+    parser.add_argument("--table", action="store_true",
+                        help="show each profile's results as a table with the reasons")
     parser.add_argument("--diverse", action="store_true",
                         help="penalize songs whose artist or genre is already in the results")
     args = parser.parse_args()
@@ -127,6 +130,10 @@ def main() -> None:
     for name, prefs in all_profiles.items():
         if args.compare:
             print_comparison(name, prefs, songs)
+        elif args.table:
+            print(f"\nPROFILE: {name}  ({prefs['genre']} / {prefs['mood']}, energy {prefs['energy']})")
+            picks = recommend_songs(prefs, songs, mode=args.mode, diverse=args.diverse)
+            print(recommendations_table(picks))
         else:
             print_recommendations(name, prefs, songs, mode=args.mode, diverse=args.diverse)
 
